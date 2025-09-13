@@ -27,29 +27,65 @@
     .player { background: blue; }
     .hidden { background: #000 !important; }
 
-    /* Mobile controls */
+    /* Mobile controls overlay */
     #mobileControls {
+      display: none; /* only visible on mobile */
       position: fixed;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: none; /* hidden on desktop */
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none; /* let clicks pass through except on buttons */
       z-index: 9999;
     }
-    #mobileControls button {
-      background: #333;
-      color: #fff;
-      border: none;
-      padding: 12px 16px;
-      font-size: 16px;
-      border-radius: 6px;
+
+    .controls-group {
+      position: absolute;
+      pointer-events: auto; /* buttons are clickable */
     }
-    .row {
+
+    /* D-pad (bottom-left) */
+    #dpad {
+      bottom: 20px;
+      left: 20px;
+      display: grid;
+      grid-template-columns: 60px 60px 60px;
+      grid-template-rows: 60px 60px 60px;
+      gap: 5px;
+      opacity: 0.6;
+    }
+    #dpad button {
+      background: rgba(100, 100, 100, 0.7);
+      color: white;
+      font-size: 20px;
+      border: none;
+      border-radius: 12px;
+    }
+    #dpad button:active {
+      background: rgba(150, 150, 150, 0.9);
+    }
+
+    /* Action buttons (bottom-right) */
+    #actions {
+      bottom: 40px;
+      right: 20px;
       display: flex;
-      gap: 8px;
+      flex-direction: column;
+      gap: 12px;
+      opacity: 0.6;
+    }
+    #actions button {
+      width: 80px;
+      height: 80px;
+      background: rgba(0, 120, 255, 0.7);
+      color: white;
+      font-size: 14px;
+      border: none;
+      border-radius: 50%;
+      text-align: center;
+    }
+    #actions button:active {
+      background: rgba(0, 150, 255, 0.9);
     }
   </style>
 </head>
@@ -59,17 +95,17 @@
 
 <!-- Mobile Controls -->
 <div id="mobileControls">
-  <div class="row">
-    <button id="flashlightBtn">Flashlight</button>
-    <button id="playBtn">Start/Stop</button>
+  <!-- D-pad -->
+  <div id="dpad" class="controls-group">
+    <div></div><button id="upBtn">▲</button><div></div>
+    <button id="leftBtn">◀</button><div></div><button id="rightBtn">▶</button>
+    <div></div><button id="downBtn">▼</button><div></div>
   </div>
-  <div class="row">
-    <button id="upBtn">▲</button>
-  </div>
-  <div class="row">
-    <button id="leftBtn">◀</button>
-    <button id="downBtn">▼</button>
-    <button id="rightBtn">▶</button>
+
+  <!-- Action buttons -->
+  <div id="actions" class="controls-group">
+    <button id="flashlightBtn">Light</button>
+    <button id="playBtn">Play</button>
   </div>
 </div>
 
@@ -238,7 +274,7 @@
 
   if (isMobile()) {
     const controls = document.getElementById('mobileControls');
-    controls.style.display = 'flex';
+    controls.style.display = 'block';
 
     document.getElementById('flashlightBtn').addEventListener('click', () => {
       flashlightMode = (flashlightMode + 1) % 3;
