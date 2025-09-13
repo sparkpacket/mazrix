@@ -26,11 +26,52 @@
     .end { background: red; }
     .player { background: blue; }
     .hidden { background: #000 !important; }
+
+    /* Mobile controls */
+    #mobileControls {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none; /* hidden on desktop */
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      z-index: 9999;
+    }
+    #mobileControls button {
+      background: #333;
+      color: #fff;
+      border: none;
+      padding: 12px 16px;
+      font-size: 16px;
+      border-radius: 6px;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+    }
   </style>
 </head>
 <body>
 
 <div id="grid"></div>
+
+<!-- Mobile Controls -->
+<div id="mobileControls">
+  <div class="row">
+    <button id="flashlightBtn">Flashlight</button>
+    <button id="playBtn">Start/Stop</button>
+  </div>
+  <div class="row">
+    <button id="upBtn">▲</button>
+  </div>
+  <div class="row">
+    <button id="leftBtn">◀</button>
+    <button id="downBtn">▼</button>
+    <button id="rightBtn">▶</button>
+  </div>
+</div>
 
 <script>
   const gridElement = document.getElementById('grid');
@@ -189,6 +230,28 @@
       updateLighting();
     }
   });
+
+  // Show controls if on mobile
+  function isMobile() {
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
+  if (isMobile()) {
+    const controls = document.getElementById('mobileControls');
+    controls.style.display = 'flex';
+
+    document.getElementById('flashlightBtn').addEventListener('click', () => {
+      flashlightMode = (flashlightMode + 1) % 3;
+      updateLighting();
+    });
+    document.getElementById('playBtn').addEventListener('click', () => {
+      playing ? stopGame() : startGame();
+    });
+    document.getElementById('upBtn').addEventListener('click', () => movePlayers(0, -1));
+    document.getElementById('downBtn').addEventListener('click', () => movePlayers(0, 1));
+    document.getElementById('leftBtn').addEventListener('click', () => movePlayers(-1, 0));
+    document.getElementById('rightBtn').addEventListener('click', () => movePlayers(1, 0));
+  }
 
   createGrid(gridSize);
 </script>
