@@ -1,19 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Mazrix</title>
   <style>
-    html, body {
+    html,body {
       margin: 0;
       background: #000;
-      overflow: hidden;
       height: 100%;
+      overflow: hidden;
     }
+
+    /* Grid */
     #grid {
       display: grid;
       width: 100vw;
       height: 100vh;
+      touch-action: none; /* helps pointer events on mobile */
     }
     .cell {
       box-sizing: border-box;
@@ -27,65 +31,69 @@
     .player { background: blue; }
     .hidden { background: #000 !important; }
 
-    /* Mobile controls overlay */
-    #mobileControls {
-      display: none; /* only visible on mobile */
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none; /* let clicks pass through except on buttons */
-      z-index: 9999;
-    }
-
-    .controls-group {
-      position: absolute;
-      pointer-events: auto; /* buttons are clickable */
-    }
-
     /* D-pad (bottom-left) */
     #dpad {
-      bottom: 20px;
-      left: 20px;
+      position: fixed;
+      left: 14px;
+      bottom: 14px;
       display: grid;
-      grid-template-columns: 60px 60px 60px;
-      grid-template-rows: 60px 60px 60px;
-      gap: 5px;
-      opacity: 0.6;
+      grid-template-columns: 56px 56px 56px;
+      grid-template-rows: 56px 56px 56px;
+      gap: 8px;
+      width: calc(56px * 3 + 16px);
+      height: calc(56px * 3 + 16px);
+      z-index: 9999;
+      user-select: none;
+      -webkit-user-select: none;
     }
-    #dpad button {
-      background: rgba(100, 100, 100, 0.7);
-      color: white;
-      font-size: 20px;
-      border: none;
+    .d-btn {
+      width: 56px;
+      height: 56px;
       border-radius: 12px;
+      border: none;
+      font-size: 20px;
+      background: rgba(100,100,100,0.55);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
     }
-    #dpad button:active {
-      background: rgba(150, 150, 150, 0.9);
-    }
+    .d-btn:active { transform: scale(0.96); }
 
     /* Action buttons (bottom-right) */
     #actions {
-      bottom: 40px;
-      right: 20px;
+      position: fixed;
+      right: 16px;
+      bottom: 18px;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      opacity: 0.6;
+      z-index: 9999;
+      user-select: none;
     }
-    #actions button {
-      width: 80px;
-      height: 80px;
-      background: rgba(0, 120, 255, 0.7);
-      color: white;
-      font-size: 14px;
+    .act-btn {
+      width: 72px;
+      height: 72px;
+      border-radius: 999px;
       border: none;
-      border-radius: 50%;
-      text-align: center;
+      background: rgba(0,120,255,0.55);
+      color: #fff;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
     }
-    #actions button:active {
-      background: rgba(0, 150, 255, 0.9);
+    .act-btn:active { transform: scale(0.97); }
+
+    /* Hide controls by default; shown via JS on mobile */
+    .hidden-controls { display: none; }
+
+    /* Make buttons slightly smaller on very small screens */
+    @media (max-width: 360px) {
+      #dpad { transform: scale(0.9); transform-origin: left bottom; }
+      #actions { transform: scale(0.9); transform-origin: right bottom; }
     }
   </style>
 </head>
@@ -93,20 +101,25 @@
 
 <div id="grid"></div>
 
-<!-- Mobile Controls -->
-<div id="mobileControls">
-  <!-- D-pad -->
-  <div id="dpad" class="controls-group">
-    <div></div><button id="upBtn">▲</button><div></div>
-    <button id="leftBtn">◀</button><div></div><button id="rightBtn">▶</button>
-    <div></div><button id="downBtn">▼</button><div></div>
-  </div>
+<!-- D-pad (3x3 placeholders, arrows in cardinal places) -->
+<div id="dpad" class="hidden-controls" aria-hidden="true">
+  <div></div>
+  <button id="upBtn" class="d-btn" aria-label="Up">▲</button>
+  <div></div>
 
-  <!-- Action buttons -->
-  <div id="actions" class="controls-group">
-    <button id="flashlightBtn">Light</button>
-    <button id="playBtn">Play</button>
-  </div>
+  <button id="leftBtn" class="d-btn" aria-label="Left">◀</button>
+  <div></div>
+  <button id="rightBtn" class="d-btn" aria-label="Right">▶</button>
+
+  <div></div>
+  <button id="downBtn" class="d-btn" aria-label="Down">▼</button>
+  <div></div>
+</div>
+
+<!-- Action buttons -->
+<div id="actions" class="hidden-controls" aria-hidden="true">
+  <button id="flashlightBtn" class="act-btn" aria-label="Toggle flashlight">Light</button>
+  <button id="playBtn" class="act-btn" aria-label="Start or stop">Play</button>
 </div>
 
 <script>
@@ -132,7 +145,14 @@
         cell.dataset.state = 'wall';
         cell.dataset.x = x;
         cell.dataset.y = y;
-        cell.addEventListener('click', () => cycleTile(cell));
+
+        // Use pointerdown for both mouse and touch: more reliable on mobile
+        cell.addEventListener('pointerdown', ev => {
+          // only handle primary button for mouse
+          if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+          cycleTile(cell);
+        });
+
         gridElement.appendChild(cell);
         row.push(cell);
       }
@@ -173,21 +193,30 @@
     playing = true;
     updatePlayerVisuals();
     updateLighting();
+    updatePlayButton();
   }
 
   function stopGame() {
     playing = false;
+    updatePlayButton();
+  }
+
+  function updatePlayButton() {
+    const playBtn = document.getElementById('playBtn');
+    if (!playBtn) return;
+    playBtn.textContent = playing ? 'Stop' : 'Play';
+  }
+
+  function updateLightButton() {
+    const b = document.getElementById('flashlightBtn');
+    if (!b) return;
+    const labels = ['Full', 'Dark', 'Flash'];
+    b.textContent = `Light: ${labels[flashlightMode]}`;
   }
 
   function updatePlayerVisuals() {
-    for (let row of cells) {
-      for (let cell of row) {
-        cell.classList.remove('player');
-      }
-    }
-    for (let p of players) {
-      cells[p.y][p.x].classList.add('player');
-    }
+    for (let row of cells) for (let cell of row) cell.classList.remove('player');
+    for (let p of players) cells[p.y][p.x].classList.add('player');
   }
 
   function movePlayers(dx, dy) {
@@ -209,8 +238,8 @@
   }
 
   function checkWin() {
-    const allAtEnd = players.every(p => cells[p.y][p.x].dataset.state === 'end');
-    if (allAtEnd && players.length > 0) {
+    const allAtEnd = players.length > 0 && players.every(p => cells[p.y][p.x].dataset.state === 'end');
+    if (allAtEnd) {
       alert("You win!");
       stopGame();
     }
@@ -225,6 +254,7 @@
     }
 
     if (flashlightMode === 0) return; // Fullbright
+
     if (flashlightMode === 1) {
       for (let row of cells) {
         for (let cell of row) {
@@ -234,7 +264,7 @@
       return;
     }
 
-    // Mode 2: flashlight effect
+    // Mode 2: flashlight around players
     for (let y = 0; y < gridSize; y++) {
       for (let x = 0; x < gridSize; x++) {
         let visible = false;
@@ -252,44 +282,105 @@
     }
   }
 
+  // keyboard support retained
   document.addEventListener('keydown', e => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      playing ? stopGame() : startGame();
-    }
+    if (e.key === 'Tab') { e.preventDefault(); playing ? stopGame() : startGame(); }
     if (e.key === 'ArrowUp') movePlayers(0, -1);
     if (e.key === 'ArrowDown') movePlayers(0, 1);
     if (e.key === 'ArrowLeft') movePlayers(-1, 0);
     if (e.key === 'ArrowRight') movePlayers(1, 0);
-    if (e.key.toLowerCase() === 'f') {
+    if (e.key.toLowerCase && e.key.toLowerCase() === 'f') {
       flashlightMode = (flashlightMode + 1) % 3;
       updateLighting();
+      updateLightButton();
     }
   });
 
-  // Show controls if on mobile
-  function isMobile() {
-    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  // mobile detection: prefer touch capability or coarse pointer
+  function isMobileLike() {
+    return (('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+            window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
   }
 
-  if (isMobile()) {
-    const controls = document.getElementById('mobileControls');
-    controls.style.display = 'block';
+  // Hook up D-pad and action buttons with hold-to-repeat support
+  function addHoldButton(elem, onClick, repeatDelay = 220, repeatInterval = 110) {
+    if (!elem) return;
+    let interval = null;
+    let timeout = null;
 
-    document.getElementById('flashlightBtn').addEventListener('click', () => {
-      flashlightMode = (flashlightMode + 1) % 3;
-      updateLighting();
-    });
-    document.getElementById('playBtn').addEventListener('click', () => {
-      playing ? stopGame() : startGame();
-    });
-    document.getElementById('upBtn').addEventListener('click', () => movePlayers(0, -1));
-    document.getElementById('downBtn').addEventListener('click', () => movePlayers(0, 1));
-    document.getElementById('leftBtn').addEventListener('click', () => movePlayers(-1, 0));
-    document.getElementById('rightBtn').addEventListener('click', () => movePlayers(1, 0));
+    const start = (ev) => {
+      ev.preventDefault();
+      onClick();
+      // start repeating after delay
+      timeout = setTimeout(() => {
+        interval = setInterval(onClick, repeatInterval);
+      }, repeatDelay);
+    };
+    const stop = () => {
+      if (timeout) { clearTimeout(timeout); timeout = null; }
+      if (interval) { clearInterval(interval); interval = null; }
+    };
+
+    elem.addEventListener('pointerdown', start);
+    // pointerup/pointercancel on window so release outside button still stops it
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
+    // also support mouse leaving
+    elem.addEventListener('mouseleave', stop);
+    // single tap fallback handled since start() calls onClick immediately
   }
 
+  // Wire up movement and action buttons if present
+  function setupControls() {
+    const up = document.getElementById('upBtn');
+    const down = document.getElementById('downBtn');
+    const left = document.getElementById('leftBtn');
+    const right = document.getElementById('rightBtn');
+    const flash = document.getElementById('flashlightBtn');
+    const play = document.getElementById('playBtn');
+
+    addHoldButton(up, () => movePlayers(0, -1));
+    addHoldButton(down, () => movePlayers(0, 1));
+    addHoldButton(left, () => movePlayers(-1, 0));
+    addHoldButton(right, () => movePlayers(1, 0));
+
+    if (flash) {
+      flash.addEventListener('pointerdown', ev => {
+        ev.preventDefault();
+        flashlightMode = (flashlightMode + 1) % 3;
+        updateLighting();
+        updateLightButton();
+      });
+    }
+
+    if (play) {
+      play.addEventListener('pointerdown', ev => {
+        ev.preventDefault();
+        if (playing) stopGame(); else startGame();
+      });
+    }
+  }
+
+  // Show/hide controls based on device type
+  function showMobileControlsIfNeeded() {
+    const show = isMobileLike();
+    const dpad = document.getElementById('dpad');
+    const actions = document.getElementById('actions');
+    if (show) {
+      dpad.classList.remove('hidden-controls');
+      actions.classList.remove('hidden-controls');
+    } else {
+      dpad.classList.add('hidden-controls');
+      actions.classList.add('hidden-controls');
+    }
+  }
+
+  // init
   createGrid(gridSize);
+  showMobileControlsIfNeeded();
+  setupControls();
+  updateLightButton();
+  updatePlayButton();
 </script>
 
 </body>
